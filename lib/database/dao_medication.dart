@@ -21,11 +21,8 @@ class DaoMedication {
       'listmedications.db',
       version: 1,
       onCreate: (db, version) async {
-        debugPrint('Criando banco de dados...');
         await createTables(db);
-        debugPrint('Banco criado com sucesso!');
       },
-
       onOpen: (db) async {
         debugPrint('Banco aberto com sucesso!');
       }
@@ -93,5 +90,35 @@ class DaoMedication {
       debugPrint('Falha na exclusão: $error');
       return false;
     }
+  }
+
+  static Future<bool> existsMedication({
+    required String name,
+    required String dosage,
+    String? schedule,
+  }) async {
+    final db = await DaoMedication.openBank();
+    final normalizedName = name.trim().toLowerCase();
+    final normalizedDosage = dosage.trim().toLowerCase();
+    final normalizedSchedule = (schedule ?? '').trim().toLowerCase();
+
+    final rows = await db.query(
+      'medications',
+      columns: ['id', 'schedule'],
+      where: 'LOWER(TRIM(name)) = ? AND LOWER(TRIM(dosage)) = ?',
+      whereArgs: [normalizedName, normalizedDosage],
+    );
+
+    for (final row in rows) {
+      final rowSchedule = ((row['schedule'] as String?) ?? '').trim().toLowerCase();
+      if (normalizedSchedule.isEmpty || rowSchedule.isEmpty) {
+        return true;
+      }
+      if (rowSchedule == normalizedSchedule) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }

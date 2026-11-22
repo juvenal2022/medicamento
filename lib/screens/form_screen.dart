@@ -48,39 +48,80 @@ class _FormScreenState extends State<FormScreen> {
     });
 
     try {
-    final name = _nameController.text.trim();
-    final dosage = _dosageController.text.trim();
-    final scheduleText = _scheduleController.text.trim();
-    final schedule = scheduleText.isEmpty ? null : scheduleText;
+      final name = _nameController.text.trim();
+      final dosage = _dosageController.text.trim();
+      final scheduleText = _scheduleController.text.trim();
+      final schedule = scheduleText.isEmpty ? null : scheduleText;
 
-    final medication = MedicationModel(
-      id: widget.medication?.id ?? 0,
-      name: name,
-      dosage: dosage,
-      schedule: schedule,
-      is_taken: widget.medication?.is_taken ?? false,
-      taken_at: widget.medication?.taken_at,
-    );
+      final medication = MedicationModel(
+        id: widget.medication?.id ?? 0,
+        name: name,
+        dosage: dosage,
+        schedule: schedule,
+        is_taken: widget.medication?.is_taken ?? false,
+        taken_at: widget.medication?.taken_at,
+      );
 
-    if (_isEditing) {
-      await DaoMedication.updateMedication(medication);
-    } else {
-      await DaoMedication.addMedication(medication);
+      if (!_isEditing) {
+        final alreadyExists = await DaoMedication.existsMedication(
+          name: name,
+          dosage: dosage,
+          schedule: schedule,
+        );
+    
+        if (!mounted) return;
+
+        if (alreadyExists) {
+          final shouldContinue = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                title: Text('Medicamento já cadastrado'),
+                content: Text(
+                  'Já existe um registro semelhante para "$name" ($dosage). Deseja cadastrar mesmo assim?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: Text('Cadastrar mesmo assim'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (shouldContinue != true || !mounted) {
+            setState(() {
+              _isSaving = false;
+            });
+            return;
+          }
+        }
+      }
+
+      if (_isEditing) {
+        await DaoMedication.updateMedication(medication);
+      } else {
+        await DaoMedication.addMedication(medication);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e, stack) {
+      debugPrint('ERRO AO SALVAR: $e');
+      debugPrint('$stack');
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar: $e')),
+      );
     }
-
-    if (!mounted) return;
-    Navigator.pop(context, true);
-  } catch (e, stack) {
-    debugPrint('ERRO AO SALVAR: $e');
-    debugPrint('$stack');
-    if (!mounted) return;
-    setState(() {
-      _isSaving = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro ao salvar: $e')),
-    );
-  }
   }
 
   @override
