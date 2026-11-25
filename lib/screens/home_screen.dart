@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/models/medication_model.dart';
 import '/database/dao_medication.dart';
 import 'form_screen.dart';
+import 'medication_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -83,6 +84,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _openDetail(MedicationModel med) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MedicationDetailScreen(medication: med),
+      ),
+    );
+
+    if (changed == true && mounted) {
+      _loadMedications();
+    }
+  }
+
   String _formatTakenAt(String? isoString) {
     if (isoString == null || isoString.trim().isEmpty) {
       return '';
@@ -145,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: InkWell(
-                          onTap: () => _openForm(medication: med),
+                          onTap: () => _openDetail(med),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -167,6 +181,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit_outlined),
+                        tooltip: 'Editar',
+                        onPressed: () => _openForm(medication: med),
                       ),
                       IconButton(
                         icon: Icon(Icons.delete_outline),
